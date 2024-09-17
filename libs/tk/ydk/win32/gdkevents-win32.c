@@ -811,6 +811,10 @@ _gdk_win32_print_event (const GdkEvent *event)
     CASE (GDK_SETTING);
     CASE (GDK_OWNER_CHANGE);
     CASE (GDK_GRAB_BROKEN);
+    CASE (GDK_TOUCH_BEGIN);
+    CASE (GDK_TOUCH_UPDATE);
+    CASE (GDK_TOUCH_END);
+    CASE (GDK_TOUCH_CANCEL);
 #undef CASE
     default: g_assert_not_reached ();
     }
@@ -935,6 +939,7 @@ _gdk_win32_print_event (const GdkEvent *event)
       g_print ("%s: %s",
 	       _gdk_win32_window_state_to_string (event->window_state.changed_mask),
 	       _gdk_win32_window_state_to_string (event->window_state.new_window_state));
+      break;
     case GDK_SETTING:
       g_print ("%s: %s",
 	       (event->setting.action == GDK_SETTING_ACTION_NEW ? "NEW" :
@@ -942,11 +947,23 @@ _gdk_win32_print_event (const GdkEvent *event)
 		 (event->setting.action == GDK_SETTING_ACTION_DELETED ? "DELETED" :
 		  "???"))),
 	       (event->setting.name ? event->setting.name : "NULL"));
+      break;
     case GDK_GRAB_BROKEN:
       g_print ("%s %s %p",
 	       (event->grab_broken.keyboard ? "KEYBOARD" : "POINTER"),
 	       (event->grab_broken.implicit ? "IMPLICIT" : "EXPLICIT"),
 	       (event->grab_broken.grab_window ? GDK_WINDOW_HWND (event->grab_broken.grab_window) : 0));
+      break;
+    case GDK_TOUCH_BEGIN:
+    case GDK_TOUCH_UPDATE:
+    case GDK_TOUCH_END:
+      g_print ("Touch %s %d (%.4g,%.4g) (%.4g,%.4g) ",
+					(event->any.type == GDK_TOUCH_BEGIN) ? "Begin" : (event->any.type == GDK_TOUCH_END) ? "End" : "Update",
+	       event->touch.sequence,
+	       event->touch.x, event->touch.y,
+	       event->touch.x_root, event->touch.y_root);
+    case GDK_TOUCH_CANCEL:
+      g_print ("Touch Cancel\n");
     default:
       /* Nothing */
       break;
@@ -2679,6 +2696,13 @@ gdk_event_translate (MSG  *msg,
       _gdk_win32_append_event (event);
 
       return_val = TRUE;
+      break;
+
+    case WM_POINTERDOWN:
+      break;
+    case WM_POINTERUP:
+      break;
+    case WM_POINTERUPDATE:
       break;
 
     case WM_NCMOUSEMOVE:
